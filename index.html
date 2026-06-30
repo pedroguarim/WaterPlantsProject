@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Regar Plantas">
+<title>Regar as Plantas</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+  :root {
+    --verde-folha: #3d7a4f;
+    --verde-escuro: #1f3d28;
+    --verde-claro: #e8f3e9;
+    --terra: #8a6240;
+    --agua: #4a90c4;
+    --bege: #faf7f0;
+    --texto: #2b2b26;
+    --texto-suave: #6b6b5f;
+    --branco: #ffffff;
+    --sombra: rgba(31, 61, 40, 0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(180deg, var(--bege) 0%, #f2ede1 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 20px 50px;
+    color: var(--texto);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .topo {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .topo .icone {
+    font-size: 44px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .topo h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--verde-escuro);
+    letter-spacing: -0.3px;
+  }
+
+  .topo p {
+    font-size: 15px;
+    color: var(--texto-suave);
+    margin-top: 4px;
+  }
+
+  .cartoes {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .cartao {
+    background: var(--branco);
+    border-radius: 24px;
+    padding: 26px 24px;
+    box-shadow: 0 4px 20px var(--sombra);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid rgba(31,61,40,0.06);
+  }
+
+  .cartao-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .vaso-icone {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: var(--verde-claro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .vaso-texto h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--texto);
+  }
+
+  .vaso-texto p {
+    font-size: 13px;
+    color: var(--texto-suave);
+    margin-top: 2px;
+  }
+
+  .botao-regar {
+    background: var(--verde-folha);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 14px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 3px 10px rgba(61, 122, 79, 0.35);
+    white-space: nowrap;
+    min-width: 100px;
+  }
+
+  .botao-regar:active {
+    transform: scale(0.94);
+  }
+
+  .botao-regar.regando {
+    background: var(--agua);
+    box-shadow: 0 3px 10px rgba(74, 144, 196, 0.35);
+    pointer-events: none;
+  }
+
+  .botao-regar.concluido {
+    background: var(--terra);
+    box-shadow: 0 3px 10px rgba(138, 98, 64, 0.3);
+  }
+
+  .botao-regar.desconectado {
+    background: #b8b3a3;
+    box-shadow: none;
+    pointer-events: none;
+  }
+
+  .status-rodape {
+    margin-top: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--texto-suave);
+  }
+
+  .ponto-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #c94b4b;
+    transition: background 0.3s ease;
+  }
+
+  .ponto-status.online {
+    background: var(--verde-folha);
+  }
+
+  @keyframes gota {
+    0% { transform: translateY(-4px); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: translateY(6px); opacity: 0; }
+  }
+
+  .gota-anim {
+    display: inline-block;
+    animation: gota 1s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+  <div class="topo">
+    <span class="icone">🌿</span>
+    <h1>Regar as Plantas</h1>
+    <p>Toque no botão para regar cada vaso</p>
+  </div>
+
+  <div class="cartoes">
+
+    <div class="cartao">
+      <div class="cartao-info">
+        <div class="vaso-icone">🪴</div>
+        <div class="vaso-texto">
+          <h2>Vaso 1</h2>
+          <p id="texto-status-1">Pronto para regar</p>
+        </div>
+      </div>
+      <button class="botao-regar" id="botao-1" onclick="regar(1)">Regar</button>
+    </div>
+
+    <div class="cartao">
+      <div class="cartao-info">
+        <div class="vaso-icone">🪴</div>
+        <div class="vaso-texto">
+          <h2>Vaso 2</h2>
+          <p id="texto-status-2">Pronto para regar</p>
+        </div>
+      </div>
+      <button class="botao-regar" id="botao-2" onclick="regar(2)">Regar</button>
+    </div>
+
+  </div>
+
+  <div class="status-rodape">
+    <span class="ponto-status" id="ponto-conexao"></span>
+    <span id="texto-conexao">Conectando...</span>
+  </div>
+
+<script>
+  // ===================================================
+  // CONFIGURAÇÃO DO FIREBASE - EDITE COM SEUS DADOS
+  // (mesmos dados usados no código do ESP8266)
+  // ===================================================
+  const firebaseConfig = {
+    apiKey: "SUA_API_KEY",
+    databaseURL: "https://SEU_PROJETO.firebaseio.com",
+    projectId: "SEU_PROJETO"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  function regar(numeroVaso) {
+    const botao = document.getElementById('botao-' + numeroVaso);
+    const texto = document.getElementById('texto-status-' + numeroVaso);
+
+    botao.classList.remove('concluido');
+    botao.classList.add('regando');
+    botao.innerHTML = '<span class="gota-anim">💧</span> Regando';
+    texto.textContent = 'Regando agora...';
+
+    db.ref('/comandos/bomba' + numeroVaso).set(true);
+  }
+
+  // Escuta mudanças de status vindas do ESP8266
+  function escutarStatus(numeroVaso) {
+    const botao = document.getElementById('botao-' + numeroVaso);
+    const texto = document.getElementById('texto-status-' + numeroVaso);
+
+    db.ref('/status/bomba' + numeroVaso).on('value', (snapshot) => {
+      const status = snapshot.val();
+
+      if (status === 'regando') {
+        botao.classList.remove('concluido');
+        botao.classList.add('regando');
+        botao.innerHTML = '<span class="gota-anim">💧</span> Regando';
+        texto.textContent = 'Regando agora...';
+      } else if (status === 'concluido') {
+        botao.classList.remove('regando');
+        botao.classList.add('concluido');
+        botao.textContent = 'Regado ✓';
+        texto.textContent = 'Regado com sucesso';
+
+        // volta ao normal depois de 4 segundos
+        setTimeout(() => {
+          botao.classList.remove('concluido');
+          botao.textContent = 'Regar';
+          texto.textContent = 'Pronto para regar';
+        }, 4000);
+      }
+    });
+  }
+
+  escutarStatus(1);
+  escutarStatus(2);
+
+  // Indicador de conexão (verifica se o ESP está online)
+  const pontoConexao = document.getElementById('ponto-conexao');
+  const textoConexao = document.getElementById('texto-conexao');
+
+  db.ref('.info/connected').on('value', (snapshot) => {
+    if (snapshot.val() === true) {
+      pontoConexao.classList.add('online');
+      textoConexao.textContent = 'Conectado';
+    } else {
+      pontoConexao.classList.remove('online');
+      textoConexao.textContent = 'Sem conexão';
+    }
+  });
+</script>
+
+</body>
+</html>
